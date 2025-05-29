@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="text-center mb-4">Our Services</h2>
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/exterior.jpg')}}" class="card-img-top" alt="Exterior Washing">
+                <h5 class="card-title">Exterior Washing</h5>
+                <p class="card-text">KSH {{ services.exterior }}</p>
+                <p>Washing off dirt, mud, and grime, followed by polishing to restore shine and applying wax for protection.</p>
+                <a href="{{ url_for('book_service', service_type='exterior') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/interior.jpg')}}" class="card-img-top" alt="Interior Cleaning">
+                <h5 class="card-title">Interior Cleaning</h5>
+                <p class="card-text">KSH {{ services.interior }}</p>
+                <p>Vacuuming seats, carpets, and mats, wiping down dashboards, and potentially steam cleaning upholstery.</p>
+                <a href="{{ url_for('book_service', service_type='interior') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/engine.jpg')}}" class="card-img-top" alt="Engine Cleaning">
+                <h5 class="card-title">Engine Cleaning</h5>
+                <p class="card-text">KSH {{ services.engine }}</p>
+                <p>Remove dirt, grime, and oil from the engine bay to improve performance and aesthetics.</p>
+                <a href="{{ url_for('book_service', service_type='engine') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/tire and rim.jpg')}}" class="card-img-top" alt="Tire and Rim Care">
+                <h5 class="card-title">Tire and Rim Care</h5>
+                <p class="card-text">KSH {{ services.tire_rim }}</p>
+                <p>Cleaning and polishing tires and rims to enhance their appearance.</p>
+                <a href="{{ url_for('book_service', service_type='tire_rim') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/detailing.jpg')}}" class="card-img-top" alt="Detailing">
+                <h5 class="card-title">Detailing</h5>
+                <p class="card-text">KSH {{ services.detailing }}</p>
+                <p>Comprehensive service including buffing, leather restoration, and waxing.</p>
+                <a href="{{ url_for('book_service', service_type='detailing') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card service-card h-100">
+            <div class="card-body">
+                <img src="{{url_for('static',filename='images/carpet.jpg')}}" class="card-img-top" alt="Carpet Cleaning">
+                <h5 class="card-title">Carpet Cleaning</h5>
+                <p class="card-text">KSH {{ services.carpet }} per sq.ft</p>
+                <p>Professional carpet cleaning service for your vehicle.</p>
+                <a href="{{ url_for('book_service', service_type='carpet') }}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

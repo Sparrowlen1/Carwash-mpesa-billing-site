@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Admin Dashboard</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>All Bookings</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Service</th>
+                            <th>Date/Time</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking, user in bookings %}
+                        <tr id="booking-row-{{ booking.id }}">
+                            <td>{{ booking.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ booking.service_type|title }}</td>
+                            <td>{{ booking.booking_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>KSH {{ booking.total_amount }}</td>
+                            <td>
+                                <span class="badge bg-{% if booking.payment_status == 'Completed' %}success{% else %}warning{% endif %}">
+                                    {{ booking.payment_status }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-danger btn-sm delete-booking" 
+                                        data-booking-id="{{ booking.id }}">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.delete-booking').forEach(function(button) {
+    button.addEventListener('click', function () {
+      const bookingId = this.getAttribute('data-booking-id');
+      fetch(`/admin/delete_booking/${bookingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const row = document.getElementById(`booking-row-${bookingId}`);
+          if (row) {
+            row.remove();
+          }
+        } else {
+          alert(data.message || 'Error deleting booking');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Something went wrong.');
+      });
+    });
+  });
+});
+</script>
+{% endblock %}
+

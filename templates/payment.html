@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="text-center">Payment Details</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5>Service: {{ booking.service_type|title }}</h5>
+                    <p>Date: {{ booking.booking_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    {% if booking.service_type == 'carpet' %}
+                        <p>Carpet Area: {{ booking.carpet_area }} sq.ft</p>
+                    {% endif %}
+                    <p>Car Details: {{ booking.car_details }}</p>
+                    <h4 class="mt-3">Total Amount: KSH {{ booking.total_amount }}</h4>
+                </div>
+                
+                <form method="POST">
+                    <p class="text-muted">You will receive an M-Pesa push notification to complete the payment.</p>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Pay with M-Pesa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

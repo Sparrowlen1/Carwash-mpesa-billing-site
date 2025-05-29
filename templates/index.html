@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-content text-center text-white">
+        <h1 class="display-4 fw-bold">Premium Car Wash Services</h1>
+        <p class="lead">Book professional car cleaning services online with M-Pesa payment</p>
+        {% if 'user_id' not in session %}
+            <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-2">Sign Up</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">Login</a>
+        {% else %}
+            <a href="{{ url_for('services') }}" class="btn btn-light btn-lg">Book a Service</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card service-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Exterior Washing</h5>
+                    <p class="card-text">Washing off dirt, mud, and grime, followed by polishing to restore shine and applying wax for protection.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card service-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Interior Cleaning</h5>
+                    <p class="card-text">Vacuuming seats, carpets, and mats, wiping down dashboards, and potentially steam cleaning upholstery.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card service-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Engine Cleaning</h5>
+                    <p class="card-text">Remove dirt, grime, and oil from the engine bay to improve performance and aesthetics.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

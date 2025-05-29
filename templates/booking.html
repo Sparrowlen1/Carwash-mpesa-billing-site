@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="text-center">Book {{ service_type|title }} Service</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="booking_time" class="form-label">Preferred Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="booking_time" name="booking_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="car_details" class="form-label">Car Details (Make, Model, Color)</label>
+                        <input type="text" class="form-control" id="car_details" name="car_details" required>
+                    </div>
+                    {% if service_type == 'carpet' %}
+                    <div class="mb-3">
+                        <label for="carpet_area" class="form-label">Carpet Area (square feet)</label>
+                        <input type="number" class="form-control" id="carpet_area" name="carpet_area" required>
+                    </div>
+                    {% endif %}
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Proceed to Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
