@@ -14,6 +14,8 @@ import time
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
+
+
 # Configure session
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
@@ -203,6 +205,8 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
+       
+
         
         if not username or not password:
             flash('Please enter both username and password', 'danger')
@@ -362,6 +366,7 @@ def admin_dashboard():
                          services=SERVICE_PRICES)
 
 @app.route('/admin/delete_booking/<int:booking_id>', methods=['POST'])
+
 def admin_delete_booking(booking_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Please login first'}), 401
@@ -387,7 +392,7 @@ def admin_delete_booking(booking_id):
         app.logger.error(f"Error deleting booking: {str(e)}")
         return jsonify({
             'success': False, 
-            'message': f'Error deleting booking: {str(e)}'
+            'message': 'Database error: ' + str(e)
         }), 500
 
 @app.route('/callback', methods=['POST'])

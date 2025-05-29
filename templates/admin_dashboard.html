@@ -52,34 +52,41 @@
 {% endblock %}
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('.delete-booking').forEach(function(button) {
-    button.addEventListener('click', function () {
-      const bookingId = this.getAttribute('data-booking-id');
+document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('click', function(e) {
+    const deleteBtn = e.target.closest('.delete-booking');
+    if (deleteBtn) {
+      const bookingId = deleteBtn.dataset.bookingId;
+      console.log('Deleting booking:', bookingId);
+      
       fetch(`/admin/delete_booking/${bookingId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         }
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.success) {
           const row = document.getElementById(`booking-row-${bookingId}`);
-          if (row) {
-            row.remove();
-          }
+          if (row) row.remove();
         } else {
-          alert(data.message || 'Error deleting booking');
+          alert('Error: ' + data.message);
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Something went wrong.');
+        alert('Operation failed: ' + error.message);
       });
-    });
+    }
   });
 });
+
 </script>
 {% endblock %}
 
