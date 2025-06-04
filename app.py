@@ -10,9 +10,12 @@ import base64
 import os
 import time
 from random import random
+from dotenv import load_dotenv
+
 
 # Initialize Flask app
 app = Flask(__name__)
+load_dotenv()
 app.secret_key = secrets.token_hex(16)
 
 # Configure session
@@ -45,6 +48,8 @@ class Booking(db.Model):
     booking_time = db.Column(db.DateTime, nullable=False)
     car_details = db.Column(db.String(200))
     carpet_area = db.Column(db.Integer)
+    location = db.Column(db.String(100))
+    phone = db.Column(db.Integer)
     total_amount = db.Column(db.Float, nullable=False)
     amount_paid = db.Column(db.Float, default=0.0)  # New column
     payment_status = db.Column(db.String(20), default='Pending')
@@ -53,10 +58,10 @@ class Booking(db.Model):
     is_completed = db.Column(db.Boolean, default=False)  # New column
 
 # Admin credentials
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"  
-ADMIN_EMAIL = "dannymuthui118@gmail.com"
-ADMIN_PHONE = "0795845439"
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD') 
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL')
+ADMIN_PHONE = os.getenv('ADMIN_PHONE')
 
 def initialize_database():
     with app.app_context():
@@ -77,11 +82,11 @@ def initialize_database():
 initialize_database()
 
 # M-Pesa Configuration
-MPESA_CONSUMER_KEY = 'UcxSds5IAzolyK6Lx8nONmjIUUMygIPgarGJ2OTqOEn2WqNa'
-MPESA_CONSUMER_SECRET = '6G8Z36CJnq6GixmrU9GqVrwP7aNrMVgBF24MUgaGXAflMAWyPdSe1cUO1Y2n09Cr'
-MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
-MPESA_SHORTCODE = '174379'
-MPESA_CALLBACK_URL = 'https://your-ngrok-url.ngrok.io/callback' 
+MPESA_CONSUMER_KEY = os.getenv('MPESA_CONSUMER_KEY')
+MPESA_CONSUMER_SECRET = os.getenv('MPESA_CONSUMER_SECRET')
+MPESA_PASSKEY = os.getenv('MPESA_PASSKEY')
+MPESA_SHORTCODE =os.getenv('MPESA_SHORTCODE')
+MPESA_CALLBACK_URL = os.getenv('MPESA_CALLBACK_URL') 
 # Service Prices
 SERVICE_PRICES = {
     'exterior': 1500,
@@ -252,6 +257,8 @@ def book_service(service_type):
             booking_time = request.form.get('booking_time')
             car_details = request.form.get('car_details', '').strip()
             carpet_area = int(request.form.get('carpet_area', 0))
+            phone = request.form.get('phone', '').strip()
+            location = request.form.get('location', '').strip()
             
             if not booking_time or not car_details:
                 flash('Please fill all required fields', 'danger')
@@ -270,7 +277,9 @@ def book_service(service_type):
                 booking_time=datetime.strptime(booking_time, '%Y-%m-%dT%H:%M'),
                 car_details=car_details,
                 carpet_area=carpet_area if service_type == 'carpet' else None,
-                total_amount=total_amount
+                total_amount=total_amount,
+                phone = phone,
+                location = location
             )
             
             db.session.add(new_booking)
