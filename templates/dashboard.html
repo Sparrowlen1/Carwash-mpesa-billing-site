@@ -1,48 +1,70 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2 class="mb-4">Welcome, {{ user.username }}!</h2>
+<div class="container">
+    <h2 class="mb-4">Welcome, {{ user.username }}!</h2>
 
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h4>Your Bookings</h4>
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Your Bookings</h4>
+        </div>
+        <div class="card-body">
+            {% if bookings and bookings|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Date & Time</th>
+                                <th>Total Amount</th>
+                                <th>Paid</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.service_type|title }}</td>
+                                <td>{{ booking.booking_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>KSH {{ "%.2f"|format(booking.total_amount) }}</td>
+                                <td>KSH {{ "%.2f"|format(booking.amount_paid) }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if booking.payment_status == 'Completed' %}bg-success
+                                        {% elif booking.payment_status == 'Partial' %}bg-info
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ booking.payment_status }}
+                                    </span>
+                                    {% if booking.is_completed %}
+                                        <span class="badge bg-secondary ms-1">Completed</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.payment_status != 'Completed' %}
+                                        <a href="{{ url_for('payment') }}?booking_id={{ booking.id }}" 
+                                           class="btn btn-sm btn-primary">
+                                            {% if booking.payment_status == 'Partial' %}Pay Balance
+                                            {% else %}Make Payment{% endif %}
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-4">You have no bookings yet.</p>
+                    <a href="{{ url_for('services') }}" class="btn btn-primary btn-lg">Book a Service</a>
+                </div>
+            {% endif %}
+        </div>
     </div>
-    <div class="card-body">
-        {% if bookings %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Service</th>
-                            <th>Date & Time</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for booking in bookings %}
-                        <tr>
-                            <td>{{ booking.service_type|title }}</td>
-                            <td>{{ booking.booking_time.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>KSH {{ booking.total_amount }}</td>
-                            <td>
-                                <span class="badge bg-{% if booking.payment_status == 'Completed' %}success{% else %}warning{% endif %}">
-                                    {{ booking.payment_status }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p>You have no bookings yet.</p>
-            <a href="{{ url_for('services') }}" class="btn btn-primary">Book a Service</a>
-        {% endif %}
-    </div>
-</div>
 
-<div class="text-center">
-    <a href="{{ url_for('services') }}" class="btn btn-primary btn-lg">Book Another Service</a>
+    <div class="text-center">
+        <a href="{{ url_for('services') }}" class="btn btn-primary btn-lg">Book Another Service</a>
+    </div>
 </div>
 {% endblock %}

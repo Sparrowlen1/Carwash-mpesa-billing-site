@@ -9,12 +9,11 @@ import secrets
 import base64
 import os
 import time
+from random import random
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
-
-
 
 # Configure session
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -47,11 +46,13 @@ class Booking(db.Model):
     car_details = db.Column(db.String(200))
     carpet_area = db.Column(db.Integer)
     total_amount = db.Column(db.Float, nullable=False)
+    amount_paid = db.Column(db.Float, default=0.0)  # New column
     payment_status = db.Column(db.String(20), default='Pending')
     mpesa_receipt = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_completed = db.Column(db.Boolean, default=False)  # New column
 
-
+# Admin credentials
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"  
 ADMIN_EMAIL = "dannymuthui118@gmail.com"
@@ -75,20 +76,22 @@ def initialize_database():
 
 initialize_database()
 
+# M-Pesa Configuration
 MPESA_CONSUMER_KEY = 'UcxSds5IAzolyK6Lx8nONmjIUUMygIPgarGJ2OTqOEn2WqNa'
 MPESA_CONSUMER_SECRET = '6G8Z36CJnq6GixmrU9GqVrwP7aNrMVgBF24MUgaGXAflMAWyPdSe1cUO1Y2n09Cr'
 MPESA_PASSKEY = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
 MPESA_SHORTCODE = '174379'
-MPESA_CALLBACK_URL = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-
+MPESA_CALLBACK_URL = 'https://your-ngrok-url.ngrok.io/callback' 
+# Service Prices
 SERVICE_PRICES = {
     'exterior': 1500,
-    'interior': 1,
+    'interior': 10,
     'engine': 1000,
     'tire_rim': 800,
     'detailing': 2500,
     'carpet': 20  
 }
+
 def get_access_token():
     auth_url = 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
     response = requests.get(auth_url, auth=(MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET))
@@ -98,7 +101,8 @@ def initiate_stk_push(phone, amount, booking_id):
     if phone.startswith('0'):
         phone = '254' + phone[1:]
     elif phone.startswith('+254'):
-        phone = phone.replace('+254' , '254')
+        phone = phone.replace('+254', '254')
+    
     access_token = get_access_token()
     api_url = 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -126,7 +130,7 @@ def initiate_stk_push(phone, amount, booking_id):
     response = requests.post(api_url, json=payload, headers=headers)
     return response.json()
 
-
+# Routes
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -157,22 +161,18 @@ def register():
             return redirect(url_for('register'))
         
         try:
-        
             if User.query.filter_by(username=username).first():
                 flash('Username already taken. Please choose another.', 'danger')
                 return redirect(url_for('register'))
                 
-        
             if User.query.filter_by(email=email).first():
                 flash('Email already registered. Please use another email.', 'danger')
                 return redirect(url_for('register'))
                 
-
             if User.query.filter_by(phone=phone).first():
                 flash('Phone number already registered.', 'danger')
                 return redirect(url_for('register'))
                 
-    
             hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
             new_user = User(
                 username=username,
@@ -201,8 +201,6 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
-       
-
         
         if not username or not password:
             flash('Please enter both username and password', 'danger')
@@ -210,21 +208,16 @@ def login():
         
         user = User.query.filter_by(username=username).first()
         
-        if user:
-            print(f"Checking password for user: {user.username}")
-            print(f"Stored hash: {user.password}")
-            print(f"Password match result: {check_password_hash(user.password, password)}")
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['is_admin'] = user.is_admin
+            flash('Login successful!', 'success')
             
-            if check_password_hash(user.password, password):
-                session['user_id'] = user.id
-                session['username'] = user.username
-                session['is_admin'] = user.is_admin
-                flash('Login successful!', 'success')
-                
-                if user.is_admin:
-                    return redirect(url_for('admin_dashboard'))
-                else:
-                    return redirect(url_for('dashboard'))
+            if user.is_admin:
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('dashboard'))
         
         flash('Invalid username or password!', 'danger')
         return redirect(url_for('login'))
@@ -309,14 +302,41 @@ def payment():
     
     if request.method == 'POST':
         try:
-            # Initiate M-Pesa payment
-            response = initiate_stk_push(user.phone, booking.total_amount, booking.id)
+            payment_type = request.form.get('payment_type')  # 'deposit' or 'full'
+            amount = float(request.form.get('amount', booking.total_amount))
             
-            if response.get('ResponseCode') == '0':
-                booking.mpesa_receipt = response.get('CheckoutRequestID')
-                db.session.commit()
-                flash('Payment request sent to your phone. Please complete the payment.', 'success')
-                return redirect(url_for('dashboard'))
+            if payment_type == 'deposit':
+                min_deposit = booking.total_amount * 0.2
+                if amount < min_deposit:
+                    flash(f'Deposit must be at least KSH {min_deposit:.2f}', 'danger')
+                    return redirect(url_for('payment'))
+                
+                response = initiate_stk_push(user.phone, amount, booking.id)
+                
+                if response.get('ResponseCode') == '0':
+                    booking.amount_paid = amount
+                    booking.payment_status = 'Partial'
+                    booking.mpesa_receipt = response.get('CheckoutRequestID')
+                    db.session.commit()
+                    flash(f'Deposit of KSH {amount:.2f} payment initiated. Please complete the payment on your phone.', 'success')
+                    return redirect(url_for('dashboard'))
+            
+            elif payment_type == 'full':
+                remaining_amount = booking.total_amount - booking.amount_paid
+                if amount < remaining_amount:
+                    flash(f'Please pay at least KSH {remaining_amount:.2f} to complete payment', 'danger')
+                    return redirect(url_for('payment'))
+                
+                response = initiate_stk_push(user.phone, amount, booking.id)
+                
+                if response.get('ResponseCode') == '0':
+                    booking.amount_paid += amount
+                    booking.payment_status = 'Completed' if booking.amount_paid >= booking.total_amount else 'Partial'
+                    booking.mpesa_receipt = response.get('CheckoutRequestID')
+                    db.session.commit()
+                    flash('Payment initiated. Please complete the payment on your phone.', 'success')
+                    return redirect(url_for('dashboard'))
+            
             else:
                 error_message = response.get('errorMessage', 'Payment initiation failed')
                 flash(f'Payment error: {error_message}', 'danger')
@@ -327,7 +347,11 @@ def payment():
             flash('Payment processing failed. Please try again.', 'danger')
             return redirect(url_for('payment'))
     
-    return render_template('payment.html', booking=booking, user=user)
+    remaining_balance = booking.total_amount - booking.amount_paid
+    return render_template('payment.html', 
+                         booking=booking, 
+                         user=user,
+                         remaining_balance=remaining_balance)
 
 @app.route('/dashboard')
 def dashboard():
@@ -335,25 +359,13 @@ def dashboard():
         flash('Please login to view dashboard.', 'warning')
         return redirect(url_for('login'))
     
-    try:
-        user = User.query.get(session['user_id'])
-        if not user:
-            flash('User not found', 'danger')
-            return redirect(url_for('login'))
-        
-        bookings = Booking.query.filter_by(user_id=user.id).order_by(Booking.booking_time.desc()).all()
-        
-        # Debug logging
-        app.logger.debug(f"User {user.username} has {len(bookings)} bookings")
-        for booking in bookings:
-            app.logger.debug(f"Booking ID: {booking.id}, Status: {booking.payment_status}")
-        
-        return render_template('dashboard.html', user=user, bookings=bookings)
-        
-    except Exception as e:
-        app.logger.error(f"Dashboard error: {str(e)}")
-        flash('An error occurred while loading your dashboard', 'danger')
-        return redirect(url_for('home'))
+    user = User.query.get(session['user_id'])
+    bookings = Booking.query.filter_by(user_id=user.id).order_by(Booking.booking_time.desc()).all()
+    
+    return render_template('dashboard.html', 
+                         user=user, 
+                         bookings=bookings,
+                         now=datetime.utcnow())
 
 @app.route('/admin/dashboard')
 def admin_dashboard():
@@ -366,7 +378,6 @@ def admin_dashboard():
         flash('You are not authorized to access this page.', 'danger')
         return redirect(url_for('dashboard'))
     
-    # hii it will get all bookings and users
     bookings = db.session.query(Booking, User).join(User).order_by(Booking.booking_time.desc()).all()
     users = User.query.all()
     
@@ -376,7 +387,6 @@ def admin_dashboard():
                          services=SERVICE_PRICES)
 
 @app.route('/admin/delete_booking/<int:booking_id>', methods=['POST'])
-
 def admin_delete_booking(booking_id):
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Please login first'}), 401
@@ -402,39 +412,61 @@ def admin_delete_booking(booking_id):
         app.logger.error(f"Error deleting booking: {str(e)}")
         return jsonify({
             'success': False, 
-            'message': 'Database error: ' + str(e)
+            'message': f'Error deleting booking: {str(e)}'
+        }), 500
+
+@app.route('/admin/complete_booking/<int:booking_id>', methods=['POST'])
+def admin_complete_booking(booking_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'}), 401
+    
+    user = User.query.get(session['user_id'])
+    if not user.is_admin:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    booking = Booking.query.get(booking_id)
+    if not booking:
+        return jsonify({'success': False, 'message': 'Booking not found'}), 404
+    
+    try:
+        booking.is_completed = True
+        db.session.commit()
+        return jsonify({
+            'success': True, 
+            'message': 'Booking marked as completed',
+            'booking_id': booking_id
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False, 
+            'message': f'Error: {str(e)}'
         }), 500
 
 @app.route('/callback', methods=['POST'])
 def callback():
     try:
         data = request.get_json()
-        print("Raw callback data:", data)  # Debug logging
+        print("Raw callback data:", data)
         
         result_code = data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
         checkout_request_id = data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
         mpesa_receipt = data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [{}])[1].get('Value')
 
-        print(f"Callback received - Result: {result_code}, ID: {checkout_request_id}")  # Debug
-
-        if result_code == '0':  # Success
+        if result_code == '0':
             booking = Booking.query.filter_by(mpesa_receipt=checkout_request_id).first()
             if booking:
                 booking.payment_status = 'Completed'
-                booking.mpesa_receipt = mpesa_receipt  #inastore actual receipt number
+                booking.mpesa_receipt = mpesa_receipt
                 db.session.commit()
                 print(f"Updated booking {booking.id} to Completed")
-            else:
-                print(f"No booking found for receipt {checkout_request_id}")
-        else:
-            print("Payment failed in callback:", data)
-
-        return '', 200
+        
+        return jsonify({"ResultCode": 0, "ResultDesc": "Success"}), 200
 
     except Exception as e:
         print("Callback processing error:", str(e))
-        return '', 500
-    
+        return jsonify({"ResultCode": 1, "ResultDesc": "Error"}), 500
+
 @app.route('/check_payment/<int:booking_id>')
 def check_payment(booking_id):
     if 'user_id' not in session:
@@ -449,8 +481,8 @@ def check_payment(booking_id):
     if booking.user_id != session['user_id'] and not session.get('is_admin'):
         flash('Unauthorized', 'danger')
         return redirect(url_for('dashboard'))
+    
     if booking.payment_status == 'Pending':
-        from random import random
         if random() > 0.5:  # 50% chance to "find" a payment
             booking.payment_status = 'Completed'
             db.session.commit()

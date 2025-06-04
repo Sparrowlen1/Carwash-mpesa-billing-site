@@ -309,3 +309,7 @@ select:focus {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
+.bg-success { background-color: #28a745; }
+.bg-info { background-color: #17a2b8; }
+.bg-warning { background-color: #ffc107; color: #212529; }
+.bg-secondary { background-color: #6c757d; }
